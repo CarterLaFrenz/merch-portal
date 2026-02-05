@@ -1,0 +1,13 @@
+{
+  "name": "@merch-portal/database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrate": "echo 'Migration scripts coming soon'",
+    "seed": "echo 'Seed scripts coming soon'"
+  },
+  "dependencies": {
+    "mysql2": "^3.11.5"
+  }
+}
