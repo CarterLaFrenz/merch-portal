@@ -38,6 +38,7 @@ export interface Order {
   user_email?: string;
   user_full_name?: string;
   item_count?: number;
+  items_fingerprint?: string;
 }
 
 export interface OrderItem {

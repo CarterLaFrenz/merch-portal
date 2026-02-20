@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { Product, Order, OrderWithItems } from "../types";
 import { getProducts, createProduct, updateProduct, deleteProduct, getOrders, getOrderById, updateOrderStatus, deleteOrder, uploadProductImage, updateOrder } from "../utils/api";
 import "./App.css";
@@ -70,11 +70,34 @@ export function AdminDashboard() {
   } | null>(null);
   const [editOrderLoading, setEditOrderLoading] = useState(false);
 
+  //dupe orders
+  const duplicateOrderIds = useMemo(() => {
+  const dupeIds = new Set<number>();
+  const groups = new Map<string, number[]>();
+
+  for (const order of orders) {
+    if (order.user_id && order.items_fingerprint) {
+      const key = `${order.user_id}:${order.items_fingerprint}`;
+      const existing = groups.get(key) || [];
+      existing.push(order.id);
+      groups.set(key, existing);
+    }
+  }
+
+  for (const ids of groups.values()) {
+    if (ids.length >= 2) {
+      ids.forEach(id => dupeIds.add(id));
+    }
+  }
+
+  return dupeIds;
+}, [orders]);
+
   const loadProducts = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getProducts();
+      const data = await getProducts(true);
       setProducts(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load products");
@@ -122,6 +145,15 @@ export function AdminDashboard() {
     });
     setImagePreview(product.image_url || null);
     setShowForm(true);
+  };
+
+  const handleToggleActive = async (product: Product) => {
+    try {
+      await updateProduct(product.id, { is_active: !product.is_active });
+      await loadProducts();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update product");
+    }
   };
 
   const handleDelete = async (productId: number) => {
@@ -587,7 +619,13 @@ export function AdminDashboard() {
                         {product.sizes ? product.sizes.join(", ") : "-"}
                       </td>
                       <td>
-                        {product.is_active ? "Yes" : "No"}
+                        <button
+                          onClick={() => handleToggleActive(product)}
+                          className={`btn btn-sm ${product.is_active ? '' : 'btn-danger'}`}
+                          style={{ minWidth: '80px' }}
+                        >
+                          {product.is_active ? "Active" : "Inactive"}
+                        </button>
                       </td>
                       <td>
                         <button
@@ -638,8 +676,8 @@ export function AdminDashboard() {
                 </thead>
                 <tbody>
                   {orders.map((order) => (
-                    <tr key={order.id}>
-                      <td>{order.order_number}</td>
+                    <tr key={order.id} className={duplicateOrderIds.has(order.id) ? 'dup-row' : ''}>
+                      <td>{order.order_number}{duplicateOrderIds.has(order.id) && <span className="dup-badge">DUP</span>}</td>
                       <td>{order.customer_name || order.user_full_name || "-"}</td>
                       <td>{order.customer_email || order.user_email || "-"}</td>
                       <td>{order.item_count || 0}</td>

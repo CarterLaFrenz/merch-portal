@@ -79,8 +79,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
 // Product API
 // ============================================
 
-export async function getProducts(): Promise<Product[]> {
-  const response = await fetch(`${API_BASE_URL}/products`);
+export async function getProducts(includeInactive = false): Promise<Product[]> {
+  const url = includeInactive ? `${API_BASE_URL}/products` : `${API_BASE_URL}/products?is_active=true`;
+  const response = await fetch(url);
   return handleResponse<Product[]>(response);
 }
 

@@ -139,7 +139,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
           o.*,
           u.email as user_email,
           u.full_name as user_full_name,
-          COUNT(oi.id) as item_count
+          COUNT(oi.id) as item_count,
+          (SELECT GROUP_CONCAT(CONCAT(oi2.product_id, ':', oi2.quantity, ':', IFNULL(oi2.selected_size, '')) ORDER BY oi2.product_id, oi2.selected_size)
+           FROM order_items oi2 WHERE oi2.order_id = o.id) as items_fingerprint
         FROM orders o
         LEFT JOIN users u ON o.user_id = u.id
         LEFT JOIN order_items oi ON o.id = oi.order_id
