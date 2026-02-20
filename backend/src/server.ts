@@ -1,5 +1,10 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import multipart from '@fastify/multipart'
+import fastifyStatic from '@fastify/static'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { mkdirSync } from 'fs'
 import { db } from './db/index.js'
 import { productRoutes } from './routes/products.js'
 import { authRoutes } from './routes/auth.js'
@@ -21,6 +26,21 @@ const start = async () => {
   try {
     // Register CORS
     await fastify.register(cors, { origin: true })
+
+    // File upload support (5MB max)
+    await fastify.register(multipart, {
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 }
+    })
+
+    // Serve uploaded images from backend/uploads/
+    const __dirname = path.dirname(fileURLToPath(import.meta.url))
+    const uploadsDir = path.join(__dirname, '..', 'uploads')
+    mkdirSync(uploadsDir, { recursive: true })
+    await fastify.register(fastifyStatic, {
+      root: uploadsDir,
+      prefix: '/uploads/',
+      decorateReply: false
+    })
 
     // Global error handler
     fastify.setErrorHandler((error, _request, reply) => {

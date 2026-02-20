@@ -287,6 +287,149 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // PUT /api/orders/:id - Update order details (admin only)
+  fastify.put<{
+    Params: { id: string };
+    Body: {
+      customer_name?: string;
+      customer_email?: string;
+      notes?: string;
+      items?: Array<{ id: number; quantity: number }>;
+    };
+  }>('/orders/:id', {
+    preHandler: [authenticateToken, requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const orderId = parseInt(request.params.id, 10);
+
+      if (isNaN(orderId)) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Invalid order ID',
+          statusCode: 400
+        });
+      }
+
+      // Check order exists
+      const [existingRows] = await db.query<RowDataPacket[]>(
+        'SELECT id FROM orders WHERE id = ?',
+        [orderId]
+      );
+
+      if (existingRows.length === 0) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Order not found',
+          statusCode: 404
+        });
+      }
+
+      const { customer_name, customer_email, notes, items } = request.body;
+
+      // Update customer fields if provided
+      const orderUpdates: string[] = [];
+      const orderValues: any[] = [];
+
+      if (customer_name !== undefined) {
+        orderUpdates.push('customer_name = ?');
+        orderValues.push(customer_name || null);
+      }
+      if (customer_email !== undefined) {
+        orderUpdates.push('customer_email = ?');
+        orderValues.push(customer_email || null);
+      }
+      if (notes !== undefined) {
+        orderUpdates.push('notes = ?');
+        orderValues.push(notes || null);
+      }
+
+      if (orderUpdates.length > 0) {
+        orderUpdates.push('updated_at = NOW()');
+        orderValues.push(orderId);
+        await db.query(
+          `UPDATE orders SET ${orderUpdates.join(', ')} WHERE id = ?`,
+          orderValues
+        );
+      }
+
+      // Update items if provided
+      if (items && items.length > 0) {
+        for (const item of items) {
+          if (item.quantity <= 0) {
+            // Remove item
+            await db.query(
+              'DELETE FROM order_items WHERE id = ? AND order_id = ?',
+              [item.id, orderId]
+            );
+          } else {
+            // Update quantity
+            await db.query(
+              'UPDATE order_items SET quantity = ? WHERE id = ? AND order_id = ?',
+              [item.quantity, item.id, orderId]
+            );
+          }
+        }
+
+        // Ensure at least 1 item remains
+        const [countRows] = await db.query<RowDataPacket[]>(
+          'SELECT COUNT(*) as cnt FROM order_items WHERE order_id = ?',
+          [orderId]
+        );
+
+        if (countRows[0].cnt === 0) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Order must have at least one item',
+            statusCode: 400
+          });
+        }
+
+        // Recalculate total
+        const [totalRows] = await db.query<RowDataPacket[]>(
+          'SELECT SUM(price_at_purchase * quantity) as total FROM order_items WHERE order_id = ?',
+          [orderId]
+        );
+
+        await db.query(
+          'UPDATE orders SET total_amount = ?, updated_at = NOW() WHERE id = ?',
+          [totalRows[0].total, orderId]
+        );
+      }
+
+      // Return updated order with items (same pattern as GET /orders/:id)
+      const [orderRows] = await db.query<RowDataPacket[]>(
+        `SELECT o.*, u.email as user_email, u.full_name as user_full_name
+         FROM orders o
+         LEFT JOIN users u ON o.user_id = u.id
+         WHERE o.id = ?`,
+        [orderId]
+      );
+
+      const [itemRows] = await db.query<RowDataPacket[]>(
+        `SELECT oi.*, p.name as product_name, p.image_url as product_image_url
+         FROM order_items oi
+         JOIN products p ON oi.product_id = p.id
+         WHERE oi.order_id = ?`,
+        [orderId]
+      );
+
+      return reply.send({
+        success: true,
+        data: {
+          ...orderRows[0],
+          items: itemRows
+        }
+      });
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to update order',
+        statusCode: 500
+      });
+    }
+  });
+
   // DELETE /api/orders/:id - Delete order (admin only)
   fastify.delete<{ Params: { id: string } }>('/orders/:id', {
     preHandler: [authenticateToken, requireAdmin]

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Product, Order, OrderWithItems } from "../types";
-import { getProducts, createProduct, updateProduct, deleteProduct, getOrders, getOrderById, updateOrderStatus, deleteOrder } from "../utils/api";
+import { getProducts, createProduct, updateProduct, deleteProduct, getOrders, getOrderById, updateOrderStatus, deleteOrder, uploadProductImage, updateOrder } from "../utils/api";
 import "./App.css";
 
 type ProductFormData = {
@@ -45,10 +45,30 @@ export function AdminDashboard() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+
   // Orders state
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [editOrderData, setEditOrderData] = useState<{
+    customer_name: string;
+    customer_email: string;
+    notes: string;
+    items: Array<{
+      id: number;
+      product_id: number;
+      product_name: string;
+      quantity: number;
+      price_at_purchase: number;
+      selected_size: string | null;
+    }>;
+  } | null>(null);
+  const [editOrderLoading, setEditOrderLoading] = useState(false);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -100,6 +120,7 @@ export function AdminDashboard() {
       sku: product.sku || "",
       limited_availability: product.limited_availability || false,
     });
+    setImagePreview(product.image_url || null);
     setShowForm(true);
   };
 
@@ -177,8 +198,56 @@ export function AdminDashboard() {
     setEditingProduct(null);
     setFormData(emptyForm);
     setFormError(null);
+    setImagePreview(null);
+    setDragActive(false);
   };
 
+  const handleImageUpload = async (file: File) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    setFormError('Invalid image type. Allowed: JPEG, PNG, GIF, WebP');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    setFormError('Image must be under 5MB');
+    return;
+  }
+
+  setImageUploading(true);
+  setFormError(null);
+  try {
+    setImagePreview(URL.createObjectURL(file));
+    const url = await uploadProductImage(file);
+    const fullUrl = url.startsWith('/') ? `http://localhost:3000${url}` : url;
+    setFormData(prev => ({ ...prev, image_url: fullUrl }));
+  } catch (err) {
+    setFormError(err instanceof Error ? err.message : 'Failed to upload image');
+    setImagePreview(null);
+  } finally {
+    setImageUploading(false);
+  }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageUpload(file);
+  };
+  
   const handleStatusChange = async (orderId: number, newStatus: 'pending' | 'processing' | 'completed' | 'cancelled') => {
     try {
       await updateOrderStatus(orderId, newStatus);
@@ -208,6 +277,54 @@ export function AdminDashboard() {
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete order");
     }
+  };
+
+  const handleEditOrder = () => {
+    if (!selectedOrder) return;
+    setEditOrderData({
+      customer_name: selectedOrder.customer_name || '',
+      customer_email: selectedOrder.customer_email || selectedOrder.user_email || '',
+      notes: selectedOrder.notes || '',
+      items: selectedOrder.items.map(item => ({
+        id: item.id,
+        product_id: item.product_id,
+        product_name: item.product_name || `Product #${item.product_id}`,
+        quantity: item.quantity,
+        price_at_purchase: typeof item.price_at_purchase === 'string'
+          ? parseFloat(item.price_at_purchase) : item.price_at_purchase,
+        selected_size: item.selected_size
+      }))
+    });
+    setIsEditingOrder(true);
+  };
+
+  const handleSaveOrder = async () => {
+    if (!selectedOrder || !editOrderData) return;
+    setEditOrderLoading(true);
+    try {
+      const updated = await updateOrder(selectedOrder.id, {
+        customer_name: editOrderData.customer_name,
+        customer_email: editOrderData.customer_email,
+        notes: editOrderData.notes,
+        items: editOrderData.items.map(i => ({
+          id: i.id,
+          quantity: i.quantity
+        }))
+      });
+      setSelectedOrder(updated);
+      setIsEditingOrder(false);
+      setEditOrderData(null);
+      await loadOrders();  // refresh the orders table
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update order');
+    } finally {
+      setEditOrderLoading(false);
+    }
+  };
+
+  const handleCancelEditOrder = () => {
+    setIsEditingOrder(false);
+    setEditOrderData(null);
   };
 
   if (loading) {
@@ -330,16 +447,52 @@ export function AdminDashboard() {
                 />
               </label>
 
-              <label className="form-label-admin">
-                Image URL
+              <div className="form-label-admin">
+                Image
+                <div
+                  className={`image-dropzone ${dragActive ? 'drag-active' : ''}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('image-file-input')?.click()}
+                >
+                  {imageUploading ? (
+                    <span>Uploading...</span>
+                  ) : imagePreview || formData.image_url ? (
+                    <div className="image-preview-container">
+                      <img
+                        src={imagePreview || formData.image_url}
+                        alt="Preview"
+                        className="image-preview"
+                      />
+                      <span className="image-change-hint">Click or drag to replace</span>
+                    </div>
+                  ) : (
+                    <div className="dropzone-placeholder">
+                      <span className="dropzone-icon">+</span>
+                      <span>Drag & drop image here, or click to select</span>
+                    </div>
+                  )}
+                  <input
+                    id="image-file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                  />
+                </div>
                 <input
                   type="text"
                   className="input"
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://..."
+                  placeholder="Or paste image URL..."
+                  style={{ marginTop: '0.5rem' }}
                 />
-              </label>
+              </div>
 
               <label className="form-label-admin full-width">
                 Description
@@ -536,7 +689,7 @@ export function AdminDashboard() {
       {selectedOrder && (
         <>
           <div
-            onClick={() => setSelectedOrder(null)}
+            onClick={() => { setSelectedOrder(null); handleCancelEditOrder(); }}
             className="modal-overlay"
           />
           <div className="modal modal-wide" style={{
@@ -548,17 +701,60 @@ export function AdminDashboard() {
           }}>
             <div className="modal-header-row">
               <h2 style={{ margin: 0 }}>Order #{selectedOrder.order_number}</h2>
-              <button onClick={() => setSelectedOrder(null)} className="modal-close">✕</button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {isEditingOrder ? (
+                  <>
+                    <button onClick={handleSaveOrder} className="btn btn-primary btn-sm" disabled={editOrderLoading}>
+                      {editOrderLoading ? 'Saving...' : 'Save'}
+                    </button>
+                    <button onClick={handleCancelEditOrder} className="btn btn-secondary btn-sm" disabled={editOrderLoading}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={handleEditOrder} className="btn btn-sm">Edit</button>
+                )}
+                <button onClick={() => { setSelectedOrder(null); handleCancelEditOrder(); }} className="modal-close">✕</button>
+              </div>
             </div>
 
             <div style={{ padding: "0 1.25rem 1.5rem" }}>
               <div className="order-info-grid">
                 <div><strong>Status:</strong> {selectedOrder.status}</div>
-                <div><strong>Total:</strong> ${typeof selectedOrder.total_amount === 'number' ? selectedOrder.total_amount.toFixed(2) : parseFloat(selectedOrder.total_amount).toFixed(2)}</div>
-                <div><strong>Customer:</strong> {selectedOrder.customer_name || selectedOrder.user_full_name || "-"}</div>
-                <div><strong>Email:</strong> {selectedOrder.customer_email || selectedOrder.user_email || "-"}</div>
+                <div>
+                  <strong>Total:</strong> $
+                  {isEditingOrder && editOrderData
+                    ? editOrderData.items
+                        .filter(i => i.quantity > 0)
+                        .reduce((sum, i) => sum + i.price_at_purchase * i.quantity, 0)
+                        .toFixed(2)
+                    : (typeof selectedOrder.total_amount === 'number'
+                        ? selectedOrder.total_amount.toFixed(2)
+                        : parseFloat(selectedOrder.total_amount).toFixed(2))
+                  }
+                </div>
+                <div>
+                  <strong>Customer:</strong>{' '}
+                  {isEditingOrder && editOrderData ? (
+                    <input className="input" value={editOrderData.customer_name}
+                      onChange={e => setEditOrderData({...editOrderData, customer_name: e.target.value})} />
+                  ) : (selectedOrder.customer_name || selectedOrder.user_full_name || '-')}
+                </div>
+                <div>
+                  <strong>Email:</strong>{' '}
+                  {isEditingOrder && editOrderData ? (
+                    <input className="input" value={editOrderData.customer_email}
+                      onChange={e => setEditOrderData({...editOrderData, customer_email: e.target.value})} />
+                  ) : (selectedOrder.customer_email || selectedOrder.user_email || '-')}
+                </div>
                 <div><strong>Placed:</strong> {new Date(selectedOrder.created_at).toLocaleString()}</div>
-                {selectedOrder.notes && <div className="full-width"><strong>Notes:</strong> {selectedOrder.notes}</div>}
+                <div className="full-width">
+                  <strong>Notes:</strong>{' '}
+                  {isEditingOrder && editOrderData ? (
+                    <textarea className="input" rows={2} value={editOrderData.notes}
+                      onChange={e => setEditOrderData({...editOrderData, notes: e.target.value})} />
+                  ) : (selectedOrder.notes || '-')}
+                </div>
               </div>
 
               <h3 style={{ margin: "1rem 0 0.5rem" }}>Items</h3>
@@ -571,18 +767,49 @@ export function AdminDashboard() {
                       <th>Qty</th>
                       <th>Price</th>
                       <th>Subtotal</th>
+                      {isEditingOrder && <th>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedOrder.items.map((item) => {
-                      const price = typeof item.price_at_purchase === 'string' ? parseFloat(item.price_at_purchase) : item.price_at_purchase;
+                    {(isEditingOrder && editOrderData
+                      ? editOrderData.items.filter(i => i.quantity > 0)
+                      : selectedOrder.items
+                    ).map((item, index) => {
+                      const price = typeof item.price_at_purchase === 'string'
+                        ? parseFloat(item.price_at_purchase) : item.price_at_purchase;
                       return (
                         <tr key={item.id}>
                           <td>{item.product_name || `Product #${item.product_id}`}</td>
-                          <td>{item.selected_size || "-"}</td>
-                          <td>{item.quantity}</td>
+                          <td>{item.selected_size || '-'}</td>
+                          <td>
+                            {isEditingOrder && editOrderData ? (
+                              <input type="number" min="1" className="input"
+                                style={{ width: '60px' }}
+                                value={item.quantity}
+                                onChange={e => {
+                                  const newItems = [...editOrderData.items];
+                                  newItems[index] = { ...newItems[index], quantity: parseInt(e.target.value) || 1 };
+                                  setEditOrderData({ ...editOrderData, items: newItems });
+                                }}
+                              />
+                            ) : item.quantity}
+                          </td>
                           <td>${price.toFixed(2)}</td>
                           <td>${(price * item.quantity).toFixed(2)}</td>
+                          {isEditingOrder && editOrderData && (
+                            <td>
+                              <button className="btn btn-danger btn-sm" onClick={() => {
+                                const newItems = editOrderData.items.filter((_, i) => i !== index);
+                                if (newItems.length === 0) {
+                                  alert('Order must have at least one item');
+                                  return;
+                                }
+                                setEditOrderData({ ...editOrderData, items: newItems });
+                              }}>
+                                Remove
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

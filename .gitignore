@@ -23,6 +23,7 @@ backend/dist
 
 # Environment files
 backend/.env
+backend/uploads/
 database/.env
 
 # Temp files

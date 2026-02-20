@@ -2,6 +2,7 @@ import type { Product, CartItem } from "../types";
 import { createOrder } from "../utils/api";
 
 
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -55,6 +56,12 @@ export function CartDrawer({
           ) : (
             cart.map((item) => (
               <div key={`${item.product.id}::${item.size ?? ""}`} className="cartLine">
+                <img
+                  className="cartLineImg"
+                  src={item.product.image_url ?? ""}
+                  alt={item.product.name}
+                />
+                <div className="cartLineDetails">
                 <div className="cartLineName">
                   {item.product.name}
                   {item.size ? <span className="cartLineMeta"> • Size: {item.size}</span> : null}
@@ -98,6 +105,7 @@ export function CartDrawer({
                   >
                     Remove
                   </button>
+                </div>
                 </div>
               </div>
             ))

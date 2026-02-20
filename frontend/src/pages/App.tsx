@@ -104,7 +104,11 @@ function App() {
     <>
       <header className="header">
         <div className="logo">
-          <div className="logo-icon">N</div>
+          <img
+            className="brand-logo-sm"
+            src="/NextlinkLogo.png"
+            alt="Nextlink Internet"
+          />
           <h1 className="logo-text">Nextlink Merch Store</h1>
         </div>
 

@@ -1,5 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { pipeline } from 'stream/promises';
+import { createWriteStream, mkdirSync } from 'fs';
+import { randomUUID } from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { db } from '../db/index.js';
 import {
   CreateProductRequest,
@@ -57,6 +62,59 @@ export async function productRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         success: false,
         error: 'Failed to fetch products',
+        statusCode: 500
+      });
+    }
+  });
+
+  /**
+   * POST /api/products/upload-image
+   * Upload a product image (admin only)
+   */
+  fastify.post('/products/upload-image', {
+    preHandler: [authenticateToken, requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const data = await request.file();
+
+      if (!data) {
+        return reply.status(400).send({
+          success: false,
+          error: 'No file uploaded',
+          statusCode: 400
+        });
+      }
+
+      // Validate file type
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedMimes.includes(data.mimetype)) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Invalid file type. Allowed: JPEG, PNG, GIF, WebP',
+          statusCode: 400
+        });
+      }
+
+      // Generate unique filename
+      const ext = path.extname(data.filename) || '.jpg';
+      const uniqueName = `${randomUUID()}${ext}`;
+
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+      mkdirSync(uploadsDir, { recursive: true });
+
+      const filePath = path.join(uploadsDir, uniqueName);
+      await pipeline(data.file, createWriteStream(filePath));
+
+      return reply.send({
+        success: true,
+        data: { url: `/uploads/${uniqueName}` }
+      });
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to upload image',
         statusCode: 500
       });
     }

@@ -39,7 +39,11 @@ export function LoginPage({ onLoginSuccess }: Props) {
     <div className="modal-overlay">
         <div className="modal">
         <div className="modal-logo">
-            <div className="logo-icon">N</div>
+            <img
+              className="brand-logo"
+              src="/NextlinkLogo.png"
+              alt="Nextlink Internet"
+            />
             <h2 className="modal-title">Nextlink Merch Portal</h2>
         </div>
 

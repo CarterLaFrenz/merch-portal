@@ -238,6 +238,23 @@ export async function updateOrderStatus(
   return handleResponse<Order>(response);
 }
 
+export async function updateOrder(
+  id: number,
+  data: {
+    customer_name?: string;
+    customer_email?: string;
+    notes?: string;
+    items?: Array<{ id: number; quantity: number }>;
+  }
+): Promise<OrderWithItems> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/orders/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return handleResponse<OrderWithItems>(response);
+}
+
 export async function deleteOrder(id: number): Promise<void> {
   const response = await fetchWithAuth(`${API_BASE_URL}/orders/${id}`, {
     method: 'DELETE'
@@ -263,4 +280,16 @@ export async function createOrder(
     body: JSON.stringify({ items, ...customerInfo })
   });
   return handleResponse<Order>(response);
+}
+
+export async function uploadProductImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetchWithAuth(`${API_BASE_URL}/products/upload-image`, {
+    method: 'POST',
+    body: formData
+  });
+  const result = await handleResponse<{ url: string }>(response);
+  return result.url;
 }
