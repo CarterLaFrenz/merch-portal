@@ -1,4 +1,4 @@
-import type { Product, Order, OrderWithItems } from "../types";
+import type { Product, Order, OrderWithItems, Warehouse } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
 const TOKEN_KEY = "merch_auth_token";
@@ -165,6 +165,7 @@ export interface LoginResponse {
     email: string;
     full_name: string | null;
     role: 'user' | 'admin';
+    default_warehouse_id: number | null;
   };
   accessToken: string;
   refreshToken: string;
@@ -273,12 +274,13 @@ export async function createOrder(
     customer_name?: string;
     customer_email?: string;
     notes?: string;
-  }
+  },
+  warehouse_id: number
 ): Promise<Order> {
   const response = await fetchWithAuth(`${API_BASE_URL}/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ items, ...customerInfo })
+    body: JSON.stringify({ items, ...customerInfo, warehouse_id })
   });
   return handleResponse<Order>(response);
 }
@@ -293,4 +295,50 @@ export async function uploadProductImage(file: File): Promise<string> {
   });
   const result = await handleResponse<{ url: string }>(response);
   return result.url;
+}
+
+// ============================================
+// Warehouse API
+// ============================================
+
+export async function getWarehouses(): Promise<Warehouse[]> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/warehouses`);
+  return handleResponse<Warehouse[]>(response);
+}
+
+export async function getAllWarehouses(): Promise<Warehouse[]> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/warehouses/all`);
+  return handleResponse<Warehouse[]>(response);
+}
+
+export async function createWarehouse(data: { name: string; address?: string }): Promise<Warehouse> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/warehouses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return handleResponse<Warehouse>(response);
+}
+
+export async function updateWarehouse(id: number, data: { name?: string; address?: string; is_active?: boolean }): Promise<Warehouse> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/warehouses/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return handleResponse<Warehouse>(response);
+}
+
+export async function deleteWarehouse(id: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/warehouses/${id}`, { method: 'DELETE' });
+  await handleResponse<{ message: string }>(response);
+}
+
+export async function updateUserDefaultWarehouse(warehouseId: number | null): Promise<void> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/auth/profile`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ default_warehouse_id: warehouseId })
+  });
+  await handleResponse<unknown>(response);
 }

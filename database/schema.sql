@@ -15,10 +15,25 @@ CREATE TABLE IF NOT EXISTS users (
   full_name VARCHAR(255),
   role ENUM('user', 'admin') DEFAULT 'user',
   is_active TINYINT(1) DEFAULT 1,
+  default_warehouse_id INT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login TIMESTAMP NULL,
   INDEX idx_email (email),
   INDEX idx_role (role)
+  -- FK to warehouses added after warehouses table is created (see ALTER TABLE below)
+);
+
+-- ============================================
+-- Warehouses Table
+-- ============================================
+CREATE TABLE IF NOT EXISTS warehouses (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  address TEXT,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_warehouse_active (is_active)
 );
 
 -- ============================================
@@ -68,14 +83,17 @@ CREATE TABLE IF NOT EXISTS orders (
   status ENUM('pending', 'processing', 'completed', 'cancelled') DEFAULT 'pending',
   total_amount DECIMAL(10,2) NOT NULL,
   notes TEXT,
+  warehouse_id INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   completed_at TIMESTAMP NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE RESTRICT,
   INDEX idx_user (user_id),
   INDEX idx_status (status),
   INDEX idx_created (created_at),
-  INDEX idx_customer_email (customer_email)
+  INDEX idx_customer_email (customer_email),
+  INDEX idx_order_warehouse (warehouse_id)
 );
 
 -- ============================================
@@ -85,6 +103,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_id INT NOT NULL,
   product_id INT NOT NULL,
+  product_name VARCHAR(255),
   quantity INT NOT NULL,
   selected_size VARCHAR(50),
   price_at_purchase DECIMAL(10,2) NOT NULL,
@@ -121,3 +140,12 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   INDEX idx_token (token),
   INDEX idx_user_id (user_id)
 );
+
+-- ============================================
+-- Post-creation FKs
+-- (users.default_warehouse_id references warehouses,
+--  which is created after users)
+-- ============================================
+ALTER TABLE users
+  ADD CONSTRAINT fk_user_default_warehouse
+    FOREIGN KEY (default_warehouse_id) REFERENCES warehouses(id) ON DELETE SET NULL;

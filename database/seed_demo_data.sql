@@ -21,251 +21,75 @@ ALTER TABLE users AUTO_INCREMENT = 1;
 -- 1. Insert Categories
 -- ============================================
 INSERT INTO categories (name, description) VALUES
-  ('T-Shirts', 'Premium cotton t-shirts with company branding'),
-  ('Hoodies', 'Comfortable hoodies for all seasons'),
-  ('Hats', 'Stylish caps and beanies'),
-  ('Accessories', 'Tech accessories and other branded items');
+  ('Hats, Backpacks, & Tumbler', 'Richardson hats, beanies, backpacks, tumbler, and cold-weather gear'),
+  ('Shirts, Vest, Jackets and Bibs', 'Polos, t-shirts, hoodies, fishing shirts, jackets, vests, and Carhartt bibs');
 
 -- ============================================
 -- 2. Insert Demo Users
 -- ============================================
--- Password for all users: "password123" (hashed with bcrypt)
--- Admin user: admin@nextlink.com / password123
--- Regular user: user@nextlink.com / password123
+-- Admin user: admin@nextlink.com / admin123
+-- Regular user: user@nextlink.com / user123
 
 INSERT INTO users (email, password_hash, full_name, role, is_active) VALUES
-  ('admin@nextlink.com', '$2a$10$rZ3qH5wF4mH5wF4mH5wF4uO5wF4mH5wF4mH5wF4mH5wF4mH5wF4mH', 'Admin User', 'admin', 1),
-  ('user@nextlink.com', '$2a$10$rZ3qH5wF4mH5wF4mH5wF4uO5wF4mH5wF4mH5wF4mH5wF4mH5wF4mH', 'Regular User', 'user', 1),
-  ('demo@nextlink.com', '$2a$10$rZ3qH5wF4mH5wF4mH5wF4uO5wF4mH5wF4mH5wF4mH5wF4mH5wF4mH', 'Demo User', 'user', 1);
+  ('admin@nextlink.com', '$2b$10$x7O69zva/UifFKym11Uf2OUYK6cJOkah6eMx6.pN7x7TdTqlD54.y', 'Admin User', 'admin', 1),
+  ('user@nextlink.com', '$2b$10$t0dumZe./q97VVWQ.X5p.ujp.Ac443/6.E4F85m4dbbtASWpd.Jcm', 'Regular User', 'user', 1);
 
 -- ============================================
 -- 3. Insert Products
 -- ============================================
 
--- T-Shirts (Category 1)
+-- Hats, Backpacks, & Tumbler (Category 1)
 INSERT INTO products (
   name, description, category_id, sku, price, stock_quantity, min_stock_level,
   image_url, sizes, colors, limited_availability, is_active
 ) VALUES
-  (
-    'Nextlink Classic T-Shirt',
-    'Our signature cotton t-shirt featuring the Nextlink logo. Comfortable, breathable, and perfect for everyday wear.',
-    1,
-    'TSHIRT-CLASSIC-001',
-    24.99,
-    150,
-    20,
-    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500',
-    '["XS", "S", "M", "L", "XL", "2XL"]',
-    '["Black", "White", "Navy", "Gray"]',
-    0,
-    1
-  ),
-  (
-    'Nextlink Premium Polo',
-    'Elevated polo shirt with embroidered logo. Perfect for professional events and casual Fridays.',
-    1,
-    'POLO-PREMIUM-001',
-    39.99,
-    75,
-    15,
-    'https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?w=500',
-    '["S", "M", "L", "XL", "2XL"]',
-    '["Navy", "White", "Charcoal"]',
-    0,
-    1
-  ),
-  (
-    'Limited Edition Tech Tee',
-    'Moisture-wicking performance tee with reflective logo. Limited production run.',
-    1,
-    'TSHIRT-TECH-LTD',
-    34.99,
-    25,
-    5,
-    'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=500',
-    '["S", "M", "L", "XL"]',
-    '["Black", "Electric Blue"]',
-    1,
-    1
-  );
+  ('Richardson 112 Snapback - Grey/White', 'Richardson 112 snapback hat in grey and white with Nextlink logo.', 1, 'RICH-112-GW', 13.00, 100, 10, '/uploads/RICH-112-GW.png', '["One Size"]', '["Grey", "White"]', 0, 1),
+  ('C826 Port Authority Fitted Hat - Grey/Black', 'Port Authority fitted hat in grey and black. ONLY Small/Medium size available.', 1, 'C826-GB', 13.00, 50, 5, '/uploads/C826-GB.png', '["S/M"]', '["Grey", "Black"]', 0, 1),
+  ('NE1120 New Era Stretch Mesh Contrast Stitch', 'New Era stretch mesh hat with contrast stitching. Available in Small/Medium, Medium/Large, and Large/XL.', 1, 'NE1120', 14.00, 75, 10, '/uploads/NE1120.png', '["S/M", "M/L", "L/XL"]', NULL, 0, 1),
+  ('Richardson R-Active 256 Snapback UPF 50+ - Grey/White Rope', 'Richardson R-Active 256 snapback with UPF 50+ protection. Grey with white rope.', 1, 'R256-GW', 15.00, 75, 10, '/uploads/R256-GW.png', '["One Size"]', '["Grey"]', 0, 1),
+  ('Richardson R-Active 256 Snapback UPF 50+ - Black/Black Rope', 'Richardson R-Active 256 snapback with UPF 50+ protection. Black with black rope.', 1, 'R256-BB', 15.00, 75, 10, '/uploads/R256-BB.png', '["One Size"]', '["Black"]', 0, 1),
+  ('Richardson R-Active 256 Snapback UPF 50+ - Orange/Black Rope', 'Richardson R-Active 256 snapback with UPF 50+ protection. Orange with black rope.', 1, 'R256-OB', 15.00, 75, 10, '/uploads/R256-OB.png', '["One Size"]', '["Orange"]', 0, 1),
+  ('Richardson 112FPR Snapback - Grey/Black with Black Rope', 'Richardson 112FPR snapback in grey/black with black rope.', 1, 'R112FPR-GBK', 13.00, 100, 10, '/uploads/R112FPR-GBK.png', '["One Size"]', '["Grey", "Black"]', 0, 1),
+  ('Richardson 112FPR Snapback - Black with White Rope', 'Richardson 112FPR snapback in black with white rope.', 1, 'R112FPR-BWH', 13.00, 100, 10, '/uploads/R112FPR-BWH.png', '["One Size"]', '["Black"]', 0, 1),
+  ('Richardson 112FPR Snapback - White with Black Rope', 'Richardson 112FPR snapback in white with black rope.', 1, 'R112FPR-WBK', 13.00, 100, 10, '/uploads/R112FPR-WBK.png', '["One Size"]', '["White"]', 0, 1),
+  ('Richardson 112FPR Snapback - Grey/White with White Rope', 'Richardson 112FPR snapback in grey/white with white rope.', 1, 'R112FPR-GWW', 13.00, 100, 10, '/uploads/R112FPR-GWW.png', '["One Size"]', '["Grey", "White"]', 0, 1),
+  ('Richardson 112FPR Snapback - Black Center Patch Logo', 'Richardson 112FPR snapback with black center patch Nextlink logo.', 1, 'R112FPR-BCP', 13.00, 100, 10, '/uploads/R112FPR-BCP.png', '["One Size"]', '["Black"]', 0, 1),
+  ('Richardson 112 Trucker Snapback - Black/White Patch Logo', 'Richardson 112 trucker snapback with black/white patch logo.', 1, 'R112T-BWP', 13.00, 100, 10, '/uploads/R112T-BWP.png', '["One Size"]', '["Black", "White"]', 0, 1),
+  ('Richardson 112 Trucker Snapback - Black Corner Logo', 'Richardson 112 trucker snapback with black corner Nextlink logo.', 1, 'R112T-BCL', 13.00, 100, 10, '/uploads/R112T-BCL.png', '["One Size"]', '["Black"]', 0, 1),
+  ('CP90L Black Beanie', 'Classic knit beanie in black with embroidered Nextlink logo.', 1, 'CP90L', 7.00, 150, 15, '/uploads/CP90L.png', '["One Size"]', '["Black"]', 0, 1),
+  ('CTA267 Carhartt Helmet Liner Mask', 'Carhartt helmet liner mask for cold weather protection.', 1, 'CTA267', 26.00, 50, 5, '/uploads/CTA267.png', '["One Size"]', NULL, 0, 1),
+  ('40 Ounce Nextlink Tumbler', '40oz insulated tumbler with Nextlink branding.', 1, 'TUMBLER-40', 13.00, 100, 10, '/uploads/TUMBLER-40.png', NULL, NULL, 0, 1),
+  ('Brooks Brothers Grant BackPack BB18820', 'Brooks Brothers Grant backpack (BB18820). Premium quality with Nextlink logo.', 1, 'BB18820', 125.00, 25, 5, '/uploads/BB18820.png', NULL, NULL, 0, 1),
+  ('Brooks Brothers Grant Dual-Handle BackPack BB18821', 'Brooks Brothers Grant dual-handle backpack (BB18821). Premium quality with Nextlink logo.', 1, 'BB18821', 110.00, 25, 5, '/uploads/BB18821.png', NULL, NULL, 0, 1);
 
--- Hoodies (Category 2)
+-- Shirts, Vest, Jackets and Bibs (Category 2)
 INSERT INTO products (
   name, description, category_id, sku, price, stock_quantity, min_stock_level,
   image_url, sizes, colors, limited_availability, is_active
 ) VALUES
-  (
-    'Nextlink Zip-Up Hoodie',
-    'Heavyweight fleece hoodie with full zip and embroidered logo. Your new favorite layer.',
-    2,
-    'HOODIE-ZIP-001',
-    59.99,
-    100,
-    15,
-    'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500',
-    '["S", "M", "L", "XL", "2XL"]',
-    '["Black", "Navy", "Heather Gray"]',
-    0,
-    1
-  ),
-  (
-    'Nextlink Pullover Hoodie',
-    'Classic pullover hoodie with kangaroo pocket and drawstring hood.',
-    2,
-    'HOODIE-PULL-001',
-    54.99,
-    120,
-    20,
-    'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=500',
-    '["XS", "S", "M", "L", "XL", "2XL"]',
-    '["Black", "Maroon", "Forest Green"]',
-    0,
-    1
-  ),
-  (
-    'Limited Edition Quarter-Zip',
-    'Premium quarter-zip pullover with tonal embroidery. Limited stock available.',
-    2,
-    'QUARTERZIP-LTD-001',
-    69.99,
-    30,
-    5,
-    'https://images.unsplash.com/photo-1578587018452-892bacefd3f2?w=500',
-    '["S", "M", "L", "XL"]',
-    '["Charcoal", "Navy"]',
-    1,
-    1
-  );
-
--- Hats (Category 3)
-INSERT INTO products (
-  name, description, category_id, sku, price, stock_quantity, min_stock_level,
-  image_url, sizes, colors, limited_availability, is_active
-) VALUES
-  (
-    'Nextlink Snapback Cap',
-    'Adjustable snapback cap with embroidered logo. One size fits most.',
-    3,
-    'CAP-SNAP-001',
-    29.99,
-    200,
-    30,
-    'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500',
-    '["One Size"]',
-    '["Black", "Navy", "White"]',
-    0,
-    1
-  ),
-  (
-    'Nextlink Beanie',
-    'Warm knit beanie for cold weather. Features woven Nextlink patch.',
-    3,
-    'BEANIE-001',
-    24.99,
-    150,
-    25,
-    'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=500',
-    '["One Size"]',
-    '["Black", "Gray", "Navy"]',
-    0,
-    1
-  ),
-  (
-    'Nextlink Dad Hat',
-    'Unstructured low-profile cap with adjustable strap. Casual and comfortable.',
-    3,
-    'CAP-DAD-001',
-    26.99,
-    100,
-    20,
-    'https://images.unsplash.com/photo-1575428652377-a2d80e2277fc?w=500',
-    '["One Size"]',
-    '["Black", "Khaki", "Navy"]',
-    0,
-    1
-  );
-
--- Accessories (Category 4)
-INSERT INTO products (
-  name, description, category_id, sku, price, stock_quantity, min_stock_level,
-  image_url, sizes, colors, limited_availability, is_active
-) VALUES
-  (
-    'Nextlink Laptop Stickers',
-    'Pack of 5 weatherproof stickers featuring various Nextlink designs.',
-    4,
-    'STICKER-PACK-001',
-    9.99,
-    500,
-    50,
-    'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=500',
-    NULL,
-    NULL,
-    0,
-    1
-  ),
-  (
-    'Nextlink Water Bottle',
-    'Insulated stainless steel water bottle. Keeps drinks cold for 24 hours, hot for 12.',
-    4,
-    'BOTTLE-INSUL-001',
-    34.99,
-    80,
-    15,
-    'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500',
-    NULL,
-    '["Black", "Silver", "Navy"]',
-    0,
-    1
-  ),
-  (
-    'Nextlink Tote Bag',
-    'Canvas tote bag with screen-printed logo. Perfect for carrying your essentials.',
-    4,
-    'TOTE-CANVAS-001',
-    19.99,
-    120,
-    20,
-    'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=500',
-    NULL,
-    '["Natural", "Black"]',
-    0,
-    1
-  ),
-  (
-    'Nextlink Tech Backpack',
-    'Premium backpack with padded laptop compartment and multiple organizational pockets.',
-    4,
-    'BACKPACK-TECH-001',
-    79.99,
-    50,
-    10,
-    'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500',
-    NULL,
-    '["Black", "Gray"]',
-    0,
-    1
-  ),
-  (
-    'Limited Edition Enamel Pin Set',
-    'Set of 3 collectible enamel pins. Limited production of 100 sets.',
-    4,
-    'PIN-ENAMEL-LTD',
-    14.99,
-    15,
-    5,
-    'https://images.unsplash.com/photo-1609081219090-a6d81d3085bf?w=500',
-    NULL,
-    NULL,
-    1,
-    1
-  );
+  ('Brooks Brothers Quilted Vest - Black BB18602', 'Brooks Brothers quilted vest in black (BB18602) with Nextlink logo.', 2, 'BB18602', 75.00, 30, 5, '/uploads/BB18602.png', '["S", "M", "L", "XL", "2XL"]', '["Black"]', 0, 1),
+  ('Port Authority Polo Black K569 / Sport-Tek RacerMesh Polo ST640', 'Port Authority polo in black (K569) and Sport-Tek PosiCharge RacerMesh Polo (ST640).', 2, 'K569-ST640', 22.00, 75, 10, '/uploads/K569-ST640.png', '["S", "M", "L", "XL", "2XL"]', '["Black"]', 0, 1),
+  ('Sport-Tek PosiCharge RacerMesh Polo ST640', 'Sport-Tek PosiCharge RacerMesh Polo (ST640). Sizes Small through 3XL.', 2, 'ST640', 22.00, 100, 10, '/uploads/ST640.png', '["S", "M", "L", "XL", "2XL", "3XL"]', NULL, 0, 1),
+  ('Sport-Tek T-Shirt Grey ST700', 'Sport-Tek t-shirt in grey (ST700) with Nextlink logo.', 2, 'ST700', 16.00, 100, 10, '/uploads/ST700.png', '["S", "M", "L", "XL", "2XL", "3XL"]', '["Grey"]', 0, 1),
+  ('Sport-Tek Long Sleeve T-Shirt Grey ST700LS', 'Sport-Tek long sleeve t-shirt in grey (ST700LS). Sizes Medium through 2XL.', 2, 'ST700LS', 16.00, 75, 10, '/uploads/ST700LS.png', '["M", "L", "XL", "2XL"]', '["Grey"]', 0, 1),
+  ('Sport-Tek Hoodie Black/Grey ST267', 'Sport-Tek hoodie in black and grey (ST267) with Nextlink logo.', 2, 'ST267', 20.00, 75, 10, '/uploads/ST267.png', '["S", "M", "L", "XL", "2XL", "3XL"]', '["Black", "Grey"]', 0, 1),
+  ('Long Sleeve Fishing Shirt', 'Long sleeve fishing shirt with Nextlink logo. OUT OF STOCK in sizes Medium and Large.', 2, 'FISH-LS', 15.00, 0, 5, '/uploads/FISH-LS.png', '["S", "XL", "2XL", "3XL"]', NULL, 1, 1),
+  ('Short Sleeve Fishing Shirt', 'Short sleeve fishing shirt with Nextlink logo. LIMITED SIZES ONLY: Small, 2XL, 3XL, 4XL, 5XL, 6XL.', 2, 'FISH-SS', 15.00, 30, 5, '/uploads/FISH-SS.png', '["S", "2XL", "3XL", "4XL", "5XL", "6XL"]', NULL, 1, 1),
+  ('Women''s Ogio Modern Performance Full Zip Jacket - Black LOE703', 'Women''s Ogio Modern Performance Full Zip Jacket in black (LOE703). LIMITED SIZES ONLY: Small, Medium, Large.', 2, 'LOE703', 45.00, 20, 5, '/uploads/LOE703.png', '["S", "M", "L"]', '["Black"]', 1, 1),
+  ('Women''s Ogio Extraction Soft Shell Jacket - Black LOG725', 'Women''s Ogio Extraction Soft Shell Jacket in black (LOG725). LIMITED SIZES ONLY: Large.', 2, 'LOG725', 60.00, 10, 3, '/uploads/LOG725.png', '["L"]', '["Black"]', 1, 1),
+  ('Port Authority Waterproof Jacket J331', 'Port Authority waterproof jacket (J331) with Nextlink logo.', 2, 'J331', 62.00, 50, 8, '/uploads/J331.png', '["S", "M", "L", "XL", "2XL", "3XL"]', NULL, 0, 1),
+  ('Brown Carhartt Bibs Regular Length CT106672', 'Brown Carhartt bibs in regular length (CT106672).', 2, 'CT106672', 114.00, 30, 5, '/uploads/CT106672.png', '["S", "M", "L", "XL", "2XL", "3XL"]', '["Brown"]', 0, 1),
+  ('Brown Carhartt Bibs Tall Length CTT106672', 'Brown Carhartt bibs in tall length (CTT106672).', 2, 'CTT106672', 120.00, 25, 5, '/uploads/CTT106672.png', '["S", "M", "L", "XL", "2XL", "3XL"]', '["Brown"]', 0, 1),
+  ('Brown Carhartt Jacket CT106677', 'Brown Carhartt jacket (CT106677) with Nextlink logo.', 2, 'CT106677', 110.00, 30, 5, '/uploads/CT106677.png', '["S", "M", "L", "XL", "2XL", "3XL"]', '["Brown"]', 0, 1),
+  ('Black Carhartt Artic Yukon Bibs Regular Length 104461', 'Black Carhartt Artic Yukon bibs in regular length (104461).', 2, 'YUKON-REG', 210.00, 20, 3, '/uploads/YUKON-REG.png', '["S", "M", "L", "XL", "2XL", "3XL"]', '["Black"]', 0, 1),
+  ('Black Carhartt Artic Yukon Bibs Tall Length 104461', 'Black Carhartt Artic Yukon bibs in tall length (104461).', 2, 'YUKON-TALL', 230.00, 15, 3, '/uploads/YUKON-TALL.png', '["S", "M", "L", "XL", "2XL", "3XL"]', '["Black"]', 0, 1),
+  ('Eddie Bauer WeatherEdge Plus 3-in-1 Jacket EB556', 'Eddie Bauer WeatherEdge Plus 3-in-1 jacket (EB556) with Nextlink logo.', 2, 'EB556', 206.00, 20, 3, '/uploads/EB556.png', '["S", "M", "L", "XL", "2XL", "3XL"]', NULL, 0, 1);
 
 -- ============================================
 -- Summary
 -- ============================================
--- Categories: 4
--- Products: 14 (3 limited edition items)
--- Users: 3 (1 admin, 2 regular users)
--- Default password for all users: password123
+-- Categories: 2
+-- Products: 35 (4 limited/out-of-stock items)
+-- Users: 2 (1 admin, 1 regular user)
+-- Admin login: admin@nextlink.com / admin123
+-- User login: user@nextlink.com / user123

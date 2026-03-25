@@ -24,7 +24,12 @@ function getProductKeyword(product: Product): string {
 }
 
 function getProductImage(product: Product): string {
-  if (product.image_url) return product.image_url;
+  if (product.image_url) {
+    if (product.image_url.startsWith('/uploads/')) {
+      return `http://localhost:3000${product.image_url}`;
+    }
+    return product.image_url;
+  }
   const keyword = getProductKeyword(product);
   return `https://loremflickr.com/400/400/${keyword}?lock=${product.id}`;
 }

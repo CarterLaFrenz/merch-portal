@@ -9,6 +9,7 @@ import { db } from './db/index.js'
 import { productRoutes } from './routes/products.js'
 import { authRoutes } from './routes/auth.js'
 import { orderRoutes } from './routes/orders.js'
+import { warehouseRoutes } from './routes/warehouses.js'
 
 
 
@@ -58,6 +59,7 @@ const start = async () => {
     await fastify.register(authRoutes, { prefix: '/api' })
     await fastify.register(productRoutes, { prefix: '/api' })
     await fastify.register(orderRoutes, { prefix: '/api' })
+    await fastify.register(warehouseRoutes, { prefix: '/api' })
 
     await db.query('SELECT 1');
     fastify.log.info('✅ MySQL connected');

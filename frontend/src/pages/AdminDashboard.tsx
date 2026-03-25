@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import type { Product, Order, OrderWithItems } from "../types";
-import { getProducts, createProduct, updateProduct, deleteProduct, getOrders, getOrderById, updateOrderStatus, deleteOrder, uploadProductImage, updateOrder } from "../utils/api";
+import type { Product, Order, OrderWithItems, Warehouse } from "../types";
+import { getProducts, createProduct, updateProduct, deleteProduct, getOrders, getOrderById, updateOrderStatus, deleteOrder, uploadProductImage, updateOrder, getAllWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from "../utils/api";
 import "./App.css";
 
 type ProductFormData = {
@@ -31,7 +31,13 @@ const emptyForm: ProductFormData = {
 
 export function AdminDashboard() {
   // Tab state
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'warehouses'>('products');
+
+  // Warehouse state
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseForm, setWarehouseForm] = useState({ name: '', address: '' });
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [warehouseFormError, setWarehouseFormError] = useState<string | null>(null);
 
   // Product state
   const [products, setProducts] = useState<Product[]>([]);
@@ -118,16 +124,66 @@ export function AdminDashboard() {
     }
   };
 
+  const loadWarehouses = async () => {
+    try {
+      const data = await getAllWarehouses();
+      setWarehouses(data);
+    } catch (err) {
+      console.error('Failed to load warehouses:', err);
+    }
+  };
+
   useEffect(() => {
     loadProducts();
     loadOrders();
+    loadWarehouses();
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'orders') {
-      loadOrders();
-    }
+    if (activeTab === 'orders') loadOrders();
+    if (activeTab === 'warehouses') loadWarehouses();
   }, [activeTab]);
+
+  const handleWarehouseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWarehouseFormError(null);
+    try {
+      if (editingWarehouse) {
+        await updateWarehouse(editingWarehouse.id, { name: warehouseForm.name, address: warehouseForm.address });
+      } else {
+        await createWarehouse({ name: warehouseForm.name, address: warehouseForm.address });
+      }
+      setWarehouseForm({ name: '', address: '' });
+      setEditingWarehouse(null);
+      await loadWarehouses();
+    } catch (err) {
+      setWarehouseFormError(err instanceof Error ? err.message : 'Failed to save warehouse');
+    }
+  };
+
+  const handleEditWarehouse = (w: Warehouse) => {
+    setEditingWarehouse(w);
+    setWarehouseForm({ name: w.name, address: w.address || '' });
+  };
+
+  const handleToggleWarehouse = async (w: Warehouse) => {
+    try {
+      await updateWarehouse(w.id, { is_active: !w.is_active });
+      await loadWarehouses();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update warehouse');
+    }
+  };
+
+  const handleDeleteWarehouse = async (id: number) => {
+    if (!confirm('Delete this warehouse? This will fail if orders reference it.')) return;
+    try {
+      await deleteWarehouse(id);
+      await loadWarehouses();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete warehouse');
+    }
+  };
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
@@ -405,6 +461,12 @@ export function AdminDashboard() {
           className={`admin-tab ${activeTab === 'orders' ? 'active' : ''}`}
         >
           Orders ({orders.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('warehouses')}
+          className={`admin-tab ${activeTab === 'warehouses' ? 'active' : ''}`}
+        >
+          Warehouses ({warehouses.length})
         </button>
       </div>
 
@@ -720,6 +782,86 @@ export function AdminDashboard() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Warehouses Tab */}
+      {activeTab === 'warehouses' && (
+        <div className="card">
+          <div className="card-header">Warehouses</div>
+          <div style={{ padding: '1rem 1.25rem' }}>
+            <form onSubmit={handleWarehouseSubmit} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'flex-end' }}>
+              <label className="form-label-admin" style={{ flex: '1', minWidth: '160px' }}>
+                Name *
+                <input
+                  type="text"
+                  className="input"
+                  value={warehouseForm.name}
+                  onChange={(e) => setWarehouseForm({ ...warehouseForm, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="form-label-admin" style={{ flex: '2', minWidth: '200px' }}>
+                Address
+                <input
+                  type="text"
+                  className="input"
+                  value={warehouseForm.address}
+                  onChange={(e) => setWarehouseForm({ ...warehouseForm, address: e.target.value })}
+                />
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="submit" className="btn btn-primary">
+                  {editingWarehouse ? 'Update' : 'Add Warehouse'}
+                </button>
+                {editingWarehouse && (
+                  <button type="button" className="btn btn-secondary" onClick={() => { setEditingWarehouse(null); setWarehouseForm({ name: '', address: '' }); }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+            {warehouseFormError && <div className="error-box" style={{ marginBottom: '1rem' }}>{warehouseFormError}</div>}
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {warehouses.map((w) => (
+                    <tr key={w.id}>
+                      <td>{w.id}</td>
+                      <td>{w.name}</td>
+                      <td>{w.address || '-'}</td>
+                      <td>
+                        <button
+                          className={`btn btn-sm ${w.is_active ? '' : 'btn-danger'}`}
+                          onClick={() => handleToggleWarehouse(w)}
+                          style={{ minWidth: '80px' }}
+                        >
+                          {w.is_active ? 'Active' : 'Inactive'}
+                        </button>
+                      </td>
+                      <td>
+                        <button className="btn btn-sm" style={{ marginRight: '0.5rem' }} onClick={() => handleEditWarehouse(w)}>
+                          Edit
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteWarehouse(w.id)}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 

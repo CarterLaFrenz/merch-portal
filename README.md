@@ -40,14 +40,15 @@ A full-stack merchandise ordering system built with React, TypeScript, and Node.
 
 ### Database Setup
 
-1. Create MySQL database:
-\`\`\`sql
-CREATE DATABASE inventory_db;
+1. Run the schema to create the database and tables:
+\`\`\`bash
+mysql -u root -p < database/schema.sql
 \`\`\`
 
-2. Run the schema (located in \`database/schema.sql\`)
-
-3. Update database credentials in \`backend/.env\`
+2. Seed demo data (categories, products, and user accounts):
+\`\`\`bash
+mysql -u root -p < database/seed_demo_data.sql
+\`\`\`
 
 ### Backend Setup
 
@@ -57,7 +58,10 @@ cd backend
 npm install
 \`\`\`
 
-2. Create \`.env\` file (see \`.env.example\`)
+2. Create \`.env\` file from the example and update your MySQL password:
+\`\`\`bash
+cp .env.example .env
+\`\`\`
 
 3. Start the server:
 \`\`\`bash
@@ -79,10 +83,10 @@ npm run dev
 
 3. Open http://localhost:5173
 
-## Default Admin Account
+## Demo Accounts
 
-- Email: \`admin@nextlink.com\`
-- Password: \`admin123\`
+- **Admin:** \`admin@nextlink.com\` / \`admin123\`
+- **User:** \`user@nextlink.com\` / \`user123\`
 
 ## Project Structure
 
@@ -90,7 +94,7 @@ npm run dev
 merch-portal/
 ├── backend/          # Fastify API server
 ├── frontend/         # React application
-├── database/         # SQL schema
+├── database/         # SQL schema & seed data
 └── README.md
 \`\`\`
 

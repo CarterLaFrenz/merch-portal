@@ -1,5 +1,6 @@
-import type { Product, CartItem } from "../types";
-import { createOrder } from "../utils/api";
+import type { Product, CartItem, Warehouse } from "../types";
+import { useState, useEffect } from "react";
+import { createOrder, getWarehouses } from "../utils/api";
 
 
 
@@ -23,8 +24,21 @@ export function CartDrawer({
   onClearCart,
 }: Props) {
   const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(null);
+
+  useEffect(() => {
+    getWarehouses().then((data) => {
+      setWarehouses(data);
+      if (data.length > 0) setSelectedWarehouseId(data[0].id);
+    }).catch(() => {});
+  }, []);
 
   const handleCheckout = async () => {
+    if (!selectedWarehouseId) {
+      alert("Please select a warehouse.");
+      return;
+    }
     try {
       const items = cart.map(item => ({
         product_id: item.product.id,
@@ -32,7 +46,7 @@ export function CartDrawer({
         selected_size: item.size
       }));
 
-      await createOrder(items, {});
+      await createOrder(items, {}, selectedWarehouseId);
       onClearCart();
       alert("Order placed successfully!");
     } catch (error) {
@@ -58,7 +72,7 @@ export function CartDrawer({
               <div key={`${item.product.id}::${item.size ?? ""}`} className="cartLine">
                 <img
                   className="cartLineImg"
-                  src={item.product.image_url ?? ""}
+                  src={item.product.image_url?.startsWith('/uploads/') ? `http://localhost:3000${item.product.image_url}` : (item.product.image_url ?? "")}
                   alt={item.product.name}
                 />
                 <div className="cartLineDetails">
@@ -117,9 +131,20 @@ export function CartDrawer({
             <span>Total</span>
             <strong>${total}</strong>
           </div>
-          <button 
+          {warehouses.length > 0 && (
+            <select
+              className="cartWarehouseSelect"
+              value={selectedWarehouseId ?? ""}
+              onChange={(e) => setSelectedWarehouseId(Number(e.target.value))}
+            >
+              {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </select>
+          )}
+          <button
             className="cartCheckoutBtn"
-            onClick={handleCheckout} 
+            onClick={handleCheckout}
             disabled={cart.length === 0}>
             Place Order
           </button>

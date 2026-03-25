@@ -22,6 +22,14 @@ export type CartItem = {
   size?: string;
 };
 
+export interface Warehouse {
+  id: number;
+  name: string;
+  address: string | null;
+  // only present in admin responses
+  is_active?: boolean;
+}
+
 export interface Order {
   id: number;
   order_number: string;
@@ -31,6 +39,7 @@ export interface Order {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   total_amount: number;
   notes: string | null;
+  warehouse_id: number;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -39,6 +48,7 @@ export interface Order {
   user_full_name?: string;
   item_count?: number;
   items_fingerprint?: string;
+  warehouse_name?: string;
 }
 
 export interface OrderItem {

@@ -7,6 +7,7 @@ import {
   LoginRequest,
   RefreshTokenRequest,
   AuthResponse,
+  UpdateProfileRequest,
   User
 } from '../types';
 import {
@@ -99,7 +100,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: userId,
           email,
           full_name: full_name || null,
-          role: 'user'
+          role: 'user',
+          default_warehouse_id: null
         },
         accessToken,
         refreshToken
@@ -137,7 +139,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       // Find user
       const [users] = await db.query<RowDataPacket[]>(
-        'SELECT id, email, password_hash, full_name, role, is_active FROM users WHERE email = ?',
+        'SELECT id, email, password_hash, full_name, role, is_active, default_warehouse_id FROM users WHERE email = ?',
         [email]
       );
 
@@ -208,7 +210,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: user.id,
           email: user.email,
           full_name: user.full_name,
-          role: user.role
+          role: user.role,
+          default_warehouse_id: user.default_warehouse_id || null
         },
         accessToken,
         refreshToken
@@ -369,7 +372,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       // Get full user info from database
       const [users] = await db.query<RowDataPacket[]>(
-        'SELECT id, email, full_name, role, created_at, last_login FROM users WHERE id = ?',
+        'SELECT id, email, full_name, role, created_at, last_login, default_warehouse_id FROM users WHERE id = ?',
         [request.user.userId]
       );
 
@@ -391,7 +394,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           full_name: user.full_name,
           role: user.role,
           created_at: user.created_at,
-          last_login: user.last_login
+          last_login: user.last_login,
+          default_warehouse_id: user.default_warehouse_id || null
         }
       });
     } catch (error) {
@@ -401,6 +405,52 @@ export async function authRoutes(fastify: FastifyInstance) {
         error: 'Failed to get user info',
         statusCode: 500
       });
+    }
+  });
+
+  /**
+   * PATCH /api/auth/profile
+   * Update current user's profile (e.g. set default warehouse)
+   */
+  fastify.patch<{ Body: UpdateProfileRequest }>('/auth/profile', {
+    preHandler: authenticateToken
+  }, async (request, reply) => {
+    try {
+      if (!request.user) {
+        return reply.status(401).send({ success: false, error: 'Not authenticated', statusCode: 401 });
+      }
+
+      const { default_warehouse_id } = request.body;
+
+      // If setting a warehouse, verify it exists and is active
+      if (default_warehouse_id !== null && default_warehouse_id !== undefined) {
+        const [warehouseRows] = await db.query<RowDataPacket[]>(
+          'SELECT id FROM warehouses WHERE id = ? AND is_active = 1',
+          [default_warehouse_id]
+        );
+        if (warehouseRows.length === 0) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Warehouse not found or inactive',
+            statusCode: 400
+          });
+        }
+      }
+
+      await db.query(
+        'UPDATE users SET default_warehouse_id = ? WHERE id = ?',
+        [default_warehouse_id ?? null, request.user.userId]
+      );
+
+      const [updatedUsers] = await db.query<RowDataPacket[]>(
+        'SELECT id, email, full_name, role, default_warehouse_id FROM users WHERE id = ?',
+        [request.user.userId]
+      );
+
+      return reply.send({ success: true, data: updatedUsers[0] });
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({ success: false, error: 'Failed to update profile', statusCode: 500 });
     }
   });
 }

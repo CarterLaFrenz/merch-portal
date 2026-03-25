@@ -884,6 +884,17 @@ textarea.input {
   color: var(--primary-orange);
 }
 
+.cartWarehouseSelect {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card-bg-solid);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
 .cartCheckoutBtn {
   width: 100%;
   border: none;

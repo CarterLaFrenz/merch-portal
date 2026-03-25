@@ -9,8 +9,18 @@ export interface User {
   full_name: string | null;
   role: 'user' | 'admin';
   is_active: boolean;
+  default_warehouse_id: number | null;
   created_at: Date;
   last_login: Date | null;
+}
+
+export interface Warehouse {
+  id: number;
+  name: string;
+  address: string | null;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface Category {
@@ -47,6 +57,7 @@ export interface Order {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   total_amount: number;
   notes: string | null;
+  warehouse_id: number;
   created_at: Date;
   updated_at: Date;
   completed_at: Date | null;
@@ -101,6 +112,7 @@ export interface AuthResponse {
     email: string;
     full_name: string | null;
     role: 'user' | 'admin';
+    default_warehouse_id: number | null;
   };
   accessToken: string;
   refreshToken: string;
@@ -150,6 +162,23 @@ export interface CreateOrderRequest {
     selected_size?: string;
   }>;
   notes?: string;
+  warehouse_id: number;
+}
+
+// Warehouses
+export interface CreateWarehouseRequest {
+  name: string;
+  address?: string;
+}
+
+export interface UpdateWarehouseRequest {
+  name?: string;
+  address?: string;
+  is_active?: boolean;
+}
+
+export interface UpdateProfileRequest {
+  default_warehouse_id?: number | null;
 }
 
 export interface UpdateOrderStatusRequest {

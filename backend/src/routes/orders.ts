@@ -15,12 +15,13 @@ export async function orderRoutes(fastify: FastifyInstance) {
       customer_name?: string;
       customer_email?: string;
       notes?: string;
+      warehouse_id: number;
     };
   }>('/orders', {
     preHandler: [authenticateToken]
   }, async (request, reply) => {
     try {
-      const { items, customer_name, customer_email, notes } = request.body;
+      const { items, customer_name, customer_email, notes, warehouse_id } = request.body;
       const userId = request.user?.userId;
 
       // Validate items
@@ -28,6 +29,28 @@ export async function orderRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({
           success: false,
           error: 'Order must contain at least one item',
+          statusCode: 400
+        });
+      }
+
+      // Validate warehouse
+      if (!warehouse_id) {
+        return reply.status(400).send({
+          success: false,
+          error: 'warehouse_id is required',
+          statusCode: 400
+        });
+      }
+
+      const [warehouseRows] = await db.query<RowDataPacket[]>(
+        'SELECT id FROM warehouses WHERE id = ? AND is_active = 1',
+        [warehouse_id]
+      );
+
+      if (warehouseRows.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Invalid or inactive warehouse',
           statusCode: 400
         });
       }
@@ -86,9 +109,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
       // Create order
       const [orderResult] = await db.query<ResultSetHeader>(
-        `INSERT INTO orders (order_number, user_id, customer_email, customer_name, status, total_amount, notes)
-         VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
-        [orderNumber, userId || null, customer_email || null, customer_name || null, totalAmount, notes || null]
+        `INSERT INTO orders (order_number, user_id, customer_email, customer_name, status, total_amount, notes, warehouse_id)
+         VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
+        [orderNumber, userId || null, customer_email || null, customer_name || null, totalAmount, notes || null, warehouse_id]
       );
 
       const orderId = orderResult.insertId;
@@ -132,18 +155,20 @@ export async function orderRoutes(fastify: FastifyInstance) {
   // GET /api/orders - Get all orders (admin only)
   fastify.get('/orders', {
     preHandler: [authenticateToken, requireAdmin]
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const [rows] = await db.query<RowDataPacket[]>(`
         SELECT
           o.*,
           u.email as user_email,
           u.full_name as user_full_name,
+          w.name as warehouse_name,
           COUNT(oi.id) as item_count,
           (SELECT GROUP_CONCAT(CONCAT(oi2.product_id, ':', oi2.quantity, ':', IFNULL(oi2.selected_size, '')) ORDER BY oi2.product_id, oi2.selected_size)
            FROM order_items oi2 WHERE oi2.order_id = o.id) as items_fingerprint
         FROM orders o
         LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN warehouses w ON o.warehouse_id = w.id
         LEFT JOIN order_items oi ON o.id = oi.order_id
         GROUP BY o.id
         ORDER BY o.created_at DESC
@@ -176,9 +201,11 @@ export async function orderRoutes(fastify: FastifyInstance) {
         `SELECT
           o.*,
           u.email as user_email,
-          u.full_name as user_full_name
+          u.full_name as user_full_name,
+          w.name as warehouse_name
         FROM orders o
         LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN warehouses w ON o.warehouse_id = w.id
         WHERE o.id = ?`,
         [orderId]
       );
@@ -296,6 +323,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
       customer_name?: string;
       customer_email?: string;
       notes?: string;
+      warehouse_id?: number;
       items?: Array<{ id: number; quantity: number }>;
     };
   }>('/orders/:id', {
@@ -326,7 +354,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { customer_name, customer_email, notes, items } = request.body;
+      const { customer_name, customer_email, notes, warehouse_id, items } = request.body;
 
       // Update customer fields if provided
       const orderUpdates: string[] = [];
@@ -343,6 +371,21 @@ export async function orderRoutes(fastify: FastifyInstance) {
       if (notes !== undefined) {
         orderUpdates.push('notes = ?');
         orderValues.push(notes || null);
+      }
+      if (warehouse_id !== undefined) {
+        const [whRows] = await db.query<RowDataPacket[]>(
+          'SELECT id FROM warehouses WHERE id = ? AND is_active = 1',
+          [warehouse_id]
+        );
+        if (whRows.length === 0) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Invalid or inactive warehouse',
+            statusCode: 400
+          });
+        }
+        orderUpdates.push('warehouse_id = ?');
+        orderValues.push(warehouse_id);
       }
 
       if (orderUpdates.length > 0) {
@@ -400,9 +443,10 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
       // Return updated order with items (same pattern as GET /orders/:id)
       const [orderRows] = await db.query<RowDataPacket[]>(
-        `SELECT o.*, u.email as user_email, u.full_name as user_full_name
+        `SELECT o.*, u.email as user_email, u.full_name as user_full_name, w.name as warehouse_name
          FROM orders o
          LEFT JOIN users u ON o.user_id = u.id
+         LEFT JOIN warehouses w ON o.warehouse_id = w.id
          WHERE o.id = ?`,
         [orderId]
       );
